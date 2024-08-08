@@ -2,6 +2,7 @@
 #define HOW_TO_COMPILE_YOUR_LANGUAGE_CODEGEN_H
 
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Module.h>
 
 #include <map>
 #include <memory>

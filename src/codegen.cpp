@@ -1,6 +1,6 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
-#include <llvm/Support/Host.h>
+#include <llvm/TargetParser/Host.h>
 
 #include "codegen.h"
 
@@ -349,7 +349,7 @@ void Codegen::generateFunctionBody(const ResolvedFunctionDecl &functionDecl) {
 
 void Codegen::generateBuiltinPrintlnBody(const ResolvedFunctionDecl &println) {
   auto *type = llvm::FunctionType::get(builder.getInt32Ty(),
-                                       {builder.getInt8PtrTy()}, true);
+                                       {builder.getInt8Ty()->getPointerTo()}, true);
   auto *printf = llvm::Function::Create(type, llvm::Function::ExternalLinkage,
                                         "printf", module);
   auto *format = builder.CreateGlobalStringPtr("%.15g\n");
