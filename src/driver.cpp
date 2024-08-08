@@ -30,6 +30,11 @@ void displayHelp() {
   std::exit(1);
 }
 
+enum class targets {
+  wasm,
+  native
+};
+
 struct CompilerOptions {
   std::filesystem::path source;
   std::filesystem::path output;
@@ -38,6 +43,7 @@ struct CompilerOptions {
   bool resDump = false;
   bool llvmDump = false;
   bool cfgDump = false;
+  targets target = targets::native;
 };
 
 CompilerOptions parseArguments(int argc, const char **argv) {
@@ -65,6 +71,8 @@ CompilerOptions parseArguments(int argc, const char **argv) {
         options.llvmDump = true;
       else if (arg == "-cfg-dump")
         options.cfgDump = true;
+      else if (arg == "-wasm")
+        options.target = targets::wasm;
       else
         error("unexpected option '" + std::string(arg) + '\'');
     }
@@ -150,12 +158,23 @@ int main(int argc, const char **argv) {
   llvmIR->print(f, nullptr);
 
   std::stringstream command;
-  command << "clang " << llvmIRPath;
-  if (!options.output.empty())
+  if(options.target == targets::wasm){
+    command << "llc -march=wasm32 -filetype=obj "<< llvmIRPath <<" -o main.o" ;
+    //TODO export main and others
+    command << " && lld -flavor wasm --allow-undefined --no-entry --export=main main.o "; 
+  }else{
+    command << "clang " << llvmIRPath;
+  }
+  if (!options.output.empty()){
     command << " -o " << options.output;
-
+  }else{
+    if(options.target == targets::wasm){
+      command << " -o main.wasm ";
+    }
+  }
+  //std::cout << "DEBUG ==> " << command.str();
   int ret = std::system(command.str().c_str());
-  std::filesystem::remove(llvmIRPath);
+  //std::filesystem::remove(llvmIRPath);
 
   return ret;
 }

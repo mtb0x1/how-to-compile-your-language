@@ -380,11 +380,25 @@ void Codegen::generateFunctionDecl(const ResolvedFunctionDecl &functionDecl) {
 
   std::vector<llvm::Type *> paramTypes;
   for (auto &&param : functionDecl.params)
-    paramTypes.emplace_back(generateType(param->type));
+      paramTypes.emplace_back(generateType(param->type));
 
   auto *type = llvm::FunctionType::get(retType, paramTypes, false);
-  llvm::Function::Create(type, llvm::Function::ExternalLinkage,
-                         functionDecl.identifier, module);
+  llvm::Function *func = llvm::Function::Create(
+      type, llvm::Function::ExternalLinkage, functionDecl.identifier, module);
+
+  // Mark the function for export in the WebAssembly module
+  // Cast the function pointer to a generic pointer type (ptr)
+  llvm::Constant *funcPtr = llvm::ConstantExpr::getBitCast(func, llvm::Type::getInt8Ty(module.getContext())->getPointerTo());
+
+  // Now, adjust the array and global variable declaration
+  llvm::ArrayType *arrayType = llvm::ArrayType::get(funcPtr->getType(), 1);
+  llvm::Constant *array = llvm::ConstantArray::get(arrayType, funcPtr);
+
+  llvm::GlobalVariable *exportVar = new llvm::GlobalVariable(
+      module, arrayType, true, llvm::GlobalValue::AppendingLinkage, 
+      array, "llvm.used");
+
+  exportVar->setSection("llvm.metadata");
 }
 
 llvm::Module *Codegen::generateIR() {
